@@ -373,5 +373,5 @@ Contributions welcome! Ideas for enhancement:
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/opencode-token-analyzer/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/opencode-token-analyzer/discussions)
+- **Issues**: [GitHub Issues](https://github.com/ramtinJ95/opencode-tokenscope/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ramtinJ95/opencode-tokenscope/discussions)
