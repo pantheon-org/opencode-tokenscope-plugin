@@ -125,8 +125,8 @@ echo_step "5/5 Verifying installation..."
 REQUIRED_FILES=(
     "$OPENCODE_DIR/plugin/tokenscope.ts"
     "$OPENCODE_DIR/plugin/models.json"
-    "$OPENCODE_DIR/plugin/vendor/node_modules/js-tiktoken"
-    "$OPENCODE_DIR/plugin/vendor/node_modules/@huggingface/transformers"
+    "$OPENCODE_DIR/plugin/node_modules/js-tiktoken"
+    "$OPENCODE_DIR/plugin/node_modules/@huggingface/transformers"
     "$OPENCODE_DIR/command/tokenscope.md"
 )
 
