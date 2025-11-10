@@ -1,0 +1,28 @@
+plugin/vendor/
+plugin/node_modules/
+# NPM lock files (not needed for users)
+plugin/package-lock.json
+plugin/npm-shrinkwrap.json
+**/package-lock.json
+# Plugin output files (created when /tokens runs)
+token-usage-output.txt
+token-debug.json
+# Development/Testing files
+*.log
+.env
+.env.local
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
