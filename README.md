@@ -79,7 +79,7 @@ Then restart OpenCode and run `/tokenscope`
 
 5. **Restart OpenCode**
 
-6. **Test**: Run `/tokens` in any session
+6. **Test**: Run `/tokenscope` in any session
 
 </details>
 
