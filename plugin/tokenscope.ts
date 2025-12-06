@@ -158,6 +158,7 @@ interface SubagentAnalysis {
   totalTokens: number
   totalApiCost: number
   totalEstimatedCost: number
+  totalApiCalls: number
 }
 
 interface ModelPricing {
@@ -820,10 +821,10 @@ class SubagentAnalyzer {
       totalTokens: 0,
       totalApiCost: 0,
       totalEstimatedCost: 0,
+      totalApiCalls: 0,
     }
 
     try {
-      // Fetch child sessions
       const childrenResponse = await this.client.session.children({ path: { id: parentSessionID } })
       const children: ChildSession[] = ((childrenResponse as any)?.data ?? childrenResponse ?? []) as ChildSession[]
 
@@ -841,6 +842,7 @@ class SubagentAnalyzer {
           result.totalTokens += summary.totalTokens
           result.totalApiCost += summary.apiCost
           result.totalEstimatedCost += summary.estimatedCost
+          result.totalApiCalls += summary.assistantMessageCount
         }
 
         const nestedAnalysis = await this.analyzeChildSessions(child.id)
@@ -855,6 +857,7 @@ class SubagentAnalyzer {
         result.totalTokens += nestedAnalysis.totalTokens
         result.totalApiCost += nestedAnalysis.totalApiCost
         result.totalEstimatedCost += nestedAnalysis.totalEstimatedCost
+        result.totalApiCalls += nestedAnalysis.totalApiCalls
       }
     } catch (error) {
       console.error(`Failed to fetch child sessions for ${parentSessionID}:`, error)
@@ -1199,7 +1202,7 @@ class OutputFormatter {
     if (subagentAnalysis && subagentAnalysis.subagents.length > 0) {
       lines.push(``)
       lines.push(`═══════════════════════════════════════════════════════════════════════════`)
-      lines.push(`SUBAGENT COSTS (${subagentAnalysis.subagents.length} child sessions)`)
+      lines.push(`SUBAGENT COSTS (${subagentAnalysis.subagents.length} child sessions, ${subagentAnalysis.totalApiCalls} API calls)`)
       lines.push(`─────────────────────────────────────────────────────────────────────────`)
       lines.push(``)
 
@@ -1209,7 +1212,7 @@ class OutputFormatter {
         const costStr = cost.isSubscription 
           ? `$${subagent.estimatedCost.toFixed(4)}`
           : `$${subagent.apiCost.toFixed(4)}`
-        const tokensStr = `(${this.formatNumber(subagent.totalTokens)} tokens)`
+        const tokensStr = `(${this.formatNumber(subagent.totalTokens)} tokens, ${subagent.assistantMessageCount} calls)`
         lines.push(`  ${label} ${costStr.padStart(10)}  ${tokensStr}`)
       }
 
@@ -1217,7 +1220,7 @@ class OutputFormatter {
       const subagentTotalCost = cost.isSubscription 
         ? subagentAnalysis.totalEstimatedCost 
         : subagentAnalysis.totalApiCost
-      lines.push(`Subagent Total:${' '.repeat(subagentLabelWidth - 14)} $${subagentTotalCost.toFixed(4)}  (${this.formatNumber(subagentAnalysis.totalTokens)} tokens)`)
+      lines.push(`Subagent Total:${' '.repeat(subagentLabelWidth - 14)} $${subagentTotalCost.toFixed(4)}  (${this.formatNumber(subagentAnalysis.totalTokens)} tokens, ${subagentAnalysis.totalApiCalls} calls)`)
       lines.push(``)
       lines.push(`═══════════════════════════════════════════════════════════════════════════`)
       lines.push(`GRAND TOTAL (Main + Subagents)`)
@@ -1228,11 +1231,12 @@ class OutputFormatter {
       const grandTotalCost = mainCost + subagentTotalCost
       const mainTokens = inputTokens + cacheReadTokens + cacheWriteTokens + outputTokens + reasoningTokens
       const grandTotalTokens = mainTokens + subagentAnalysis.totalTokens
+      const grandTotalApiCalls = assistantMessageCount + subagentAnalysis.totalApiCalls
 
-      lines.push(`  Main session:${' '.repeat(subagentLabelWidth - 14)} $${mainCost.toFixed(4)}  (${this.formatNumber(mainTokens)} tokens)`)
-      lines.push(`  Subagents:${' '.repeat(subagentLabelWidth - 11)} $${subagentTotalCost.toFixed(4)}  (${this.formatNumber(subagentAnalysis.totalTokens)} tokens)`)
+      lines.push(`  Main session:${' '.repeat(subagentLabelWidth - 14)} $${mainCost.toFixed(4)}  (${this.formatNumber(mainTokens)} tokens, ${assistantMessageCount} calls)`)
+      lines.push(`  Subagents:${' '.repeat(subagentLabelWidth - 11)} $${subagentTotalCost.toFixed(4)}  (${this.formatNumber(subagentAnalysis.totalTokens)} tokens, ${subagentAnalysis.totalApiCalls} calls)`)
       lines.push(`─────────────────────────────────────────────────────────────────────────`)
-      lines.push(`TOTAL:${' '.repeat(subagentLabelWidth - 5)} $${grandTotalCost.toFixed(4)}  (${this.formatNumber(grandTotalTokens)} tokens)`)
+      lines.push(`TOTAL:${' '.repeat(subagentLabelWidth - 5)} $${grandTotalCost.toFixed(4)}  (${this.formatNumber(grandTotalTokens)} tokens, ${grandTotalApiCalls} calls)`)
     }
 
     lines.push(``)
@@ -1339,3 +1343,4 @@ export const TokenAnalyzerPlugin: Plugin = async ({ client }) => {
     },
   }
 }
+
