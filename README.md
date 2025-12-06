@@ -16,13 +16,15 @@ Track and optimize your token usage across system prompts, user messages, tool o
 - **Cache-Aware Pricing**: Properly handles cache read/write tokens with discounted rates
 - **Session-Wide Billing**: Aggregates costs across all API calls in your session
 
-### Dual Tracking System
-- **Current Context**: Matches what OpenCode TUI displays (~2K difference expected)
-- **Session Total**: Cumulative billing across all API calls
-- **Clear Separation**: Understand the difference between current context and total costs
+### Subagent Cost Tracking
+- **Child Session Analysis**: Recursively analyzes all subagent sessions spawned by the Task tool
+- **Aggregated Totals**: Shows combined tokens, costs, and API calls across main session and all subagents
+- **Per-Agent Breakdown**: Lists each subagent with its type, token usage, cost, and API call count
+- **Optional Toggle**: Enable/disable subagent analysis with the `includeSubagents` parameter
 
 ### Advanced Features
-- **Tool Usage Stats**: Track which tools consume the most tokens
+- **Tool Usage Stats**: Track which tools consume the most tokens and how many times each is called
+- **API Call Tracking**: See total API calls for main session and subagents
 - **Top Contributors**: Identify the biggest token consumers
 - **Model Normalization**: Handles `provider/model` format automatically
 - **Multi-Tokenizer Support**: Uses official tokenizers (tiktoken for OpenAI, transformers for others)
@@ -111,9 +113,18 @@ Simply type in OpenCode:
 The plugin will:
 1. Analyze the current session
 2. Count tokens across all categories
-3. Calculate costs based on API telemetry
-4. Display results in terminal
-5. Save detailed report to `token-usage-output.txt`
+3. Analyze all subagent (Task tool) child sessions recursively
+4. Calculate costs based on API telemetry
+5. Display results in terminal
+6. Save detailed report to `token-usage-output.txt`
+
+### Options
+
+The tool accepts optional parameters:
+
+- **sessionID**: Analyze a specific session instead of the current one
+- **limitMessages**: Limit entries shown per category (1-10, default: 3)
+- **includeSubagents**: Include subagent child session costs (default: true)
 
 ### Reading the Full Report
 
@@ -125,102 +136,111 @@ cat token-usage-output.txt
 
 ```
 ═══════════════════════════════════════════════════════════════════════════
-Token Analysis: Session ses_53ff1f1b1ffe6jaY3aYMppLOj3
-Model: claude-opus-4-5-20251101
+Token Analysis: Session ses_50c712089ffeshuuuJPmOoXCPX
+Model: claude-opus-4-5
 ═══════════════════════════════════════════════════════════════════════════
 
-📊 TOKEN BREAKDOWN BY CATEGORY
+TOKEN BREAKDOWN BY CATEGORY
 ─────────────────────────────────────────────────────────────────────────
 Estimated using tokenizer analysis of message content:
 
 Input Categories:
-  SYSTEM    ████████████████████░░░░░░░░░░    66.0% (87,132)
-  USER      ███░░░░░░░░░░░░░░░░░░░░░░░░░░░     9.3% (12,300)
-  TOOLS     ███████░░░░░░░░░░░░░░░░░░░░░░░    24.7% (32,645)
+  SYSTEM    ██████████████░░░░░░░░░░░░░░░░    45.8% (22,367)
+  USER      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░        0.8% (375)
+  TOOLS     ████████████████░░░░░░░░░░░░░░    53.5% (26,146)
 
-  Subtotal: 132,077 estimated input tokens
+  Subtotal: 48,888 estimated input tokens
 
 Output Categories:
-  ASSISTANT █████████████░░░░░░░░░░░░░░░░░    42.3% (12,140)
-  REASONING █████████████████░░░░░░░░░░░░░    57.7% (16,530)
+  ASSISTANT ██████████████████████████████     100.0% (1,806)
 
-  Subtotal: 28,670 estimated output tokens
+  Subtotal: 1,806 estimated output tokens
 
-Local Total: 160,747 tokens (estimated)
+Local Total: 50,694 tokens (estimated)
+
+TOOL USAGE BREAKDOWN
+─────────────────────────────────────────────────────────────────────────
+bash                 ██████████░░░░░░░░░░░░░░░░░░░░     34.0% (8,886)    4x
+read                 ██████████░░░░░░░░░░░░░░░░░░░░     33.1% (8,643)    3x
+task                 ████████░░░░░░░░░░░░░░░░░░░░░░     27.7% (7,245)    4x
+webfetch             █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░      4.9% (1,286)    1x
+tokenscope           ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░         0.3% (75)    2x
+batch                ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░         0.0% (11)    1x
+
+TOP CONTRIBUTORS
+─────────────────────────────────────────────────────────────────────────
+• System (inferred from API)   22,367 tokens (44.1%)
+• bash                         8,886 tokens (17.5%)
+• read                         8,643 tokens (17.0%)
+• task                         7,245 tokens (14.3%)
+• webfetch                     1,286 tokens (2.5%)
 
 ═══════════════════════════════════════════════════════════════════════════
-📐 MOST RECENT API CALL
+MOST RECENT API CALL
 ─────────────────────────────────────────────────────────────────────────
 
 Raw telemetry from last API response:
-  Input (fresh):              7 tokens
-  Cache read:           132,070 tokens
-  Cache write:              839 tokens
-  Output:                    93 tokens
+  Input (fresh):              2 tokens
+  Cache read:            48,886 tokens
+  Cache write:               54 tokens
+  Output:                   391 tokens
   ───────────────────────────────────
-  Total:                133,009 tokens
+  Total:                 49,333 tokens
 
 ═══════════════════════════════════════════════════════════════════════════
-📡 SESSION TOTALS (All 128 API calls)
+SESSION TOTALS (All 15 API calls)
 ─────────────────────────────────────────────────────────────────────────
 
 Total tokens processed across the entire session (for cost calculation):
 
-  Input tokens:             973 (fresh tokens across all calls)
-  Cache read:         8,973,570 (cached tokens across all calls)
-  Cache write:        1,408,260 (tokens written to cache)
-  Output tokens:         56,142 (all model responses)
+  Input tokens:              10 (fresh tokens across all calls)
+  Cache read:           320,479 (cached tokens across all calls)
+  Cache write:           51,866 (tokens written to cache)
+  Output tokens:          3,331 (all model responses)
   ───────────────────────────────────
-  Session Total:     10,438,945 tokens (for billing)
+  Session Total:        375,686 tokens (for billing)
 
 ═══════════════════════════════════════════════════════════════════════════
-📊 SUMMARY
-─────────────────────────────────────────────────────────────────────────
-
-Last API Call:           133,009 tokens
-Session Total:        10,438,945 tokens
-API Calls Made:              128
-═══════════════════════════════════════════════════════════════════════════
-
-💰 ESTIMATED SESSION COST (API Key Pricing)
+ESTIMATED SESSION COST (API Key Pricing)
 ─────────────────────────────────────────────────────────────────────────
 
 You appear to be on a subscription plan (API cost is $0).
 Here's what this session would cost with direct API access:
 
-  Input tokens:             973 × $5.00/M  = $0.0049
-  Output tokens:         56,142 × $25.00/M  = $1.4035
-  Cache read:         8,973,570 × $0.50/M  = $4.4868
-  Cache write:        1,408,260 × $6.25/M  = $8.8016
+  Input tokens:              10 × $5.00/M  = $0.0001
+  Output tokens:          3,331 × $25.00/M  = $0.0833
+  Cache read:           320,479 × $0.50/M  = $0.1602
+  Cache write:           51,866 × $6.25/M  = $0.3242
 ─────────────────────────────────────────────────────────────────────────
-ESTIMATED TOTAL: $14.6968
+ESTIMATED TOTAL: $0.5677
 
 Note: This estimate uses standard API pricing from models.json.
 Actual API costs may vary based on provider and context size.
 
-🔧 TOOL USAGE BREAKDOWN
+═══════════════════════════════════════════════════════════════════════════
+SUBAGENT COSTS (4 child sessions, 23 API calls)
 ─────────────────────────────────────────────────────────────────────────
-read                 ████████████████████████░░░░░░    78.6% (25,649)   18x
-bash                 ███░░░░░░░░░░░░░░░░░░░░░░░░░░░      9.0% (2,943)   36x
-task                 ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░      5.8% (1,889)    1x
-todowrite            █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░      4.3% (1,409)    9x
-edit                 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░        1.1% (366)   15x
-write                ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░        0.7% (226)    4x
-batch                ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░        0.3% (110)    4x
-list                 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░         0.2% (49)    1x
-glob                 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░          0.0% (4)    1x
 
-⭐ TOP CONTRIBUTORS
+  docs                         $0.3190  (194,701 tokens, 8 calls)
+  general                      $0.2957  (104,794 tokens, 4 calls)
+  docs                         $0.2736  (69,411 tokens, 4 calls)
+  general                      $0.5006  (197,568 tokens, 7 calls)
 ─────────────────────────────────────────────────────────────────────────
-• System (inferred from API)   87,132 tokens (54.2%)
-• read                         25,649 tokens (16.0%)
-• bash                         2,943 tokens (1.8%)
-• task                         1,889 tokens (1.2%)
-• User#32                      1,469 tokens (0.9%)
+Subagent Total:            $1.3888  (566,474 tokens, 23 calls)
 
 ═══════════════════════════════════════════════════════════════════════════
-```
+SUMMARY
+─────────────────────────────────────────────────────────────────────────
 
+                          Cost        Tokens          API Calls
+  Main session:      $    0.5677       375,686            15
+  Subagents:         $    1.3888       566,474            23
+─────────────────────────────────────────────────────────────────────────
+  TOTAL:             $    1.9565       942,160            38
+
+═══════════════════════════════════════════════════════════════════════════
+
+```
 ## Supported Models
 
 **41+ models with accurate pricing:**
@@ -282,6 +302,13 @@ This works because the API input includes everything sent to the model.
 - **Current Context**: Uses the most recent API call with non-zero tokens (matches TUI)
 - **Session Total**: Aggregates all API calls for accurate billing
 
+### Subagent Analysis
+The plugin uses OpenCode's session API to:
+1. Fetch all child sessions spawned by the Task tool
+2. Recursively analyze nested subagents (subagents can spawn their own subagents)
+3. Aggregate tokens, costs, and API call counts
+4. Calculate estimated costs using the same pricing as the main session
+
 ### Model Name Normalization
 Automatically handles `provider/model` format (e.g., `qwen/qwen3-coder` → `qwen3-coder`)
 
@@ -332,14 +359,31 @@ The plugin uses API telemetry (ground truth). If counts seem off:
 
 ### Current Context vs Session Total
 
-- **Current Context (34K)**: What's in your context window right now
+- **Current Context**: What's in your context window right now
   - Based on most recent API call
   - Used to understand current memory usage
 
-- **Session Total (493K)**: All tokens processed in this session
-  - Sum of all 26 API calls
-  - What you're actually billed for
+- **Session Total**: All tokens processed in this session
+  - Sum of all API calls in the main session
+  - What you're billed for (main session only)
   - Used for cost calculation
+
+### Subagent Totals
+
+When using the Task tool, OpenCode spawns subagent sessions. These are tracked separately:
+
+- **Subagent Tokens**: Combined tokens from all child sessions
+- **Subagent API Calls**: Total API calls made by all subagents
+- **Grand Total**: Main session + all subagents combined
+
+The summary section shows a breakdown:
+```
+                          Cost        Tokens          API Calls
+  Main session:      $    0.5677       375,686            15
+  Subagents:         $    1.3888       566,474            23
+─────────────────────────────────────────────────────────────────────────
+  TOTAL:             $    1.9565       942,160            38
+```
 
 ### Cache Tokens
 
@@ -353,10 +397,11 @@ The plugin uses API telemetry (ground truth). If counts seem off:
 
 1. **TokenizerManager**: Loads and caches tokenizers (tiktoken, transformers)
 2. **ModelResolver**: Detects model and selects appropriate tokenizer
-3. **ContentCollector**: Extracts content from session messages
-4. **TokenAnalysisEngine**: Counts tokens and applies API telemetry
-5. **CostCalculator**: Calculates costs from pricing database
-6. **OutputFormatter**: Generates visual reports
+3. **ContentCollector**: Extracts content from session messages, including tool call counts
+4. **TokenAnalysisEngine**: Counts tokens and applies API telemetry adjustments
+5. **CostCalculator**: Calculates costs from pricing database with cache-aware pricing
+6. **SubagentAnalyzer**: Recursively fetches and analyzes child sessions from Task tool calls
+7. **OutputFormatter**: Generates visual reports with charts and summaries
 
 ## Privacy & Security
 
