@@ -34,7 +34,7 @@ Track and optimize your token usage across system prompts, user messages, tool o
 ### One-Line Install (Recommended)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/ramtinJ95/opencode-tokenscope/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/ramtinJ95/opencode-tokenscope/main/plugin/install.sh | bash
 ```
 
 Then restart OpenCode and run `/tokenscope`
@@ -100,7 +100,7 @@ If you have v1.2.1 or later installed, use the local update script:
 Use the remote script (this will also install the local update script for future use):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/ramtinJ95/opencode-tokenscope/main/install.sh | bash -s -- --update
+curl -sSL https://raw.githubusercontent.com/ramtinJ95/opencode-tokenscope/main/plugin/install.sh | bash -s -- --update
 ```
 
 Both methods download the latest plugin files while skipping dependency installation (faster).
@@ -110,7 +110,7 @@ Both methods download the latest plugin files while skipping dependency installa
 For a full reinstall (if you're having issues):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/ramtinJ95/opencode-tokenscope/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/ramtinJ95/opencode-tokenscope/main/plugin/install.sh | bash
 ```
 
 ## Usage
