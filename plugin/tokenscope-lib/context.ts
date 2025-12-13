@@ -46,12 +46,13 @@ export class ContextAnalyzer {
     )
 
     // Calculate request composition
-    const requestComposition = this.calculateRequestComposition(
+    const requestComposition = await this.calculateRequestComposition(
       toolDefinitions.totalTokens,
       systemPrompt.totalTokens,
       mostRecentInput,
       mostRecentCacheRead,
-      messages
+      messages,
+      tokenModel
     )
 
     return {
@@ -245,24 +246,33 @@ export class ContextAnalyzer {
       },
     ]
 
-    let remainingPrompt = rawPrompt
-    let matchedContent = new Set<string>()
+    // Track which portions of the prompt have been matched
+    const matchedRanges: Array<{ start: number; end: number }> = []
 
     for (const { label, description, pattern } of sectionPatterns) {
       const match = rawPrompt.match(pattern)
-      if (match && match[0] && !matchedContent.has(match[0])) {
-        const content = match[0].trim()
-        const tokens = await this.tokenizerManager.countTokens(content, tokenModel)
+      if (match && match[0] && match.index !== undefined) {
+        const start = match.index
+        const end = start + match[0].length
 
-        sections.push({
-          label,
-          description,
-          content,
-          tokens,
-        })
+        // Check if this range overlaps with any already matched range
+        const overlaps = matchedRanges.some(
+          (range) => (start >= range.start && start < range.end) || (end > range.start && end <= range.end)
+        )
 
-        matchedContent.add(match[0])
-        remainingPrompt = remainingPrompt.replace(match[0], "")
+        if (!overlaps) {
+          const content = match[0].trim()
+          const tokens = await this.tokenizerManager.countTokens(content, tokenModel)
+
+          sections.push({
+            label,
+            description,
+            content,
+            tokens,
+          })
+
+          matchedRanges.push({ start, end })
+        }
       }
     }
 
@@ -276,8 +286,23 @@ export class ContextAnalyzer {
         tokens,
       })
     } else {
-      // Check for any significant unmatched content
-      const trimmedRemaining = remainingPrompt.trim()
+      // Calculate unmatched content by finding gaps between matched ranges
+      matchedRanges.sort((a, b) => a.start - b.start)
+      let unmatchedContent = ""
+      let lastEnd = 0
+
+      for (const range of matchedRanges) {
+        if (range.start > lastEnd) {
+          unmatchedContent += rawPrompt.slice(lastEnd, range.start)
+        }
+        lastEnd = Math.max(lastEnd, range.end)
+      }
+      // Add any remaining content after the last match
+      if (lastEnd < rawPrompt.length) {
+        unmatchedContent += rawPrompt.slice(lastEnd)
+      }
+
+      const trimmedRemaining = unmatchedContent.trim()
       if (trimmedRemaining.length > 100) {
         const tokens = await this.tokenizerManager.countTokens(trimmedRemaining, tokenModel)
         if (tokens > 50) {
@@ -307,15 +332,22 @@ export class ContextAnalyzer {
     const staticContextTokens = toolDefTokens + systemPromptTokens
     const totalInputTokens = mostRecentInput + mostRecentCacheRead
 
-    // Calculate cache hit rate
+    // Calculate cache hit rate (based on input tokens only, not cache writes)
     const cacheHitRate = totalInputTokens > 0 ? (mostRecentCacheRead / totalInputTokens) * 100 : 0
 
-    // Calculate effective cost reduction
-    // Cache reads are 10x cheaper, so effective cost = input + (cacheRead / 10)
-    // Without caching, cost would be = input + cacheRead (at full price)
-    // Reduction = 1 - (input + cacheRead/10) / (input + cacheRead)
-    const withoutCaching = mostRecentInput + mostRecentCacheRead
-    const withCaching = mostRecentInput + mostRecentCacheRead / 10
+    // Calculate effective cost reduction factoring in:
+    // - Fresh input: 1x cost
+    // - Cache reads: 0.1x cost (10x cheaper)
+    // - Cache writes: 1.25x cost (25% premium)
+    //
+    // Without caching: all tokens at full price
+    // With caching: fresh at 1x + cache reads at 0.1x + cache writes at 1.25x
+    const withoutCaching = mostRecentInput + mostRecentCacheRead + mostRecentCacheWrite
+    const withCaching =
+      mostRecentInput + // Fresh input at full price
+      mostRecentCacheRead * 0.1 + // Cache reads at 10% price
+      mostRecentCacheWrite * 1.25 // Cache writes at 125% price
+
     const effectiveCostReduction = withoutCaching > 0 ? ((withoutCaching - withCaching) / withoutCaching) * 100 : 0
 
     return {
@@ -328,33 +360,32 @@ export class ContextAnalyzer {
     }
   }
 
-  private calculateRequestComposition(
+  private async calculateRequestComposition(
     toolDefTokens: number,
     systemPromptTokens: number,
     mostRecentInput: number,
     mostRecentCacheRead: number,
-    messages: SessionMessage[]
-  ): RequestComposition {
+    messages: SessionMessage[],
+    tokenModel: TokenModel
+  ): Promise<RequestComposition> {
     const totalRequest = mostRecentInput + mostRecentCacheRead
 
-    // Estimate conversation history and user message tokens
     // Tool definitions and system prompt are the static context
     const staticContext = toolDefTokens + systemPromptTokens
 
     // The remaining tokens are conversation + user message
     const dynamicTokens = Math.max(0, totalRequest - staticContext)
 
-    // Estimate: last user message is typically small, rest is conversation history
-    // This is a rough estimate since we don't have exact per-message token counts from the API
+    // Count tokens for the last user message using the tokenizer for consistency
     let lastUserMessageTokens = 0
     for (const message of [...messages].reverse()) {
       if (message.info.role === "user") {
-        // Estimate tokens for the last user message
         const textContent = message.parts
           .filter((p) => p.type === "text")
           .map((p) => (p as any).text || "")
           .join(" ")
-        lastUserMessageTokens = Math.ceil(textContent.length / 4) // Rough estimate
+        // Use the same tokenizer as the rest of the analysis for consistency
+        lastUserMessageTokens = await this.tokenizerManager.countTokens(textContent, tokenModel)
         break
       }
     }

@@ -575,9 +575,23 @@ export class OutputFormatter {
     lines.push(``)
 
     // Cost savings explanation
+    const totalWithWrite = totalInput + efficiency.cacheWriteTokens
+    const effectiveTokens = Math.round(
+      efficiency.freshInputTokens + efficiency.cacheReadTokens * 0.1 + efficiency.cacheWriteTokens * 1.25
+    )
+
     lines.push(`  Cost Impact:`)
-    lines.push(`    Without caching: ${this.formatNumber(totalInput)} tokens at full price`)
-    lines.push(`    With caching:    ${this.formatNumber(efficiency.freshInputTokens)} full + ${this.formatNumber(efficiency.cacheReadTokens)} @ 10% = ~${this.formatNumber(Math.round(efficiency.freshInputTokens + efficiency.cacheReadTokens / 10))} effective tokens`)
+    lines.push(`    Without caching: ${this.formatNumber(totalWithWrite)} tokens at full price`)
+    if (efficiency.cacheWriteTokens > 0) {
+      lines.push(
+        `    With caching:    ${this.formatNumber(efficiency.freshInputTokens)} @ 100% + ${this.formatNumber(efficiency.cacheReadTokens)} @ 10% + ${this.formatNumber(efficiency.cacheWriteTokens)} @ 125%`
+      )
+      lines.push(`                     = ~${this.formatNumber(effectiveTokens)} effective tokens`)
+    } else {
+      lines.push(
+        `    With caching:    ${this.formatNumber(efficiency.freshInputTokens)} full + ${this.formatNumber(efficiency.cacheReadTokens)} @ 10% = ~${this.formatNumber(effectiveTokens)} effective tokens`
+      )
+    }
     lines.push(``)
     lines.push(`  Effective Cost Reduction: ${efficiency.effectiveCostReduction.toFixed(1)}%`)
     lines.push(``)
