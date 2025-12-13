@@ -75,6 +75,7 @@ export interface TokenAnalysis {
   allToolsCalled: string[]
   toolCallCounts: Map<string, number>
   subagentAnalysis?: SubagentAnalysis
+  contextAnalysis?: ContextAnalysis // New: detailed context breakdown
 }
 
 export interface TokenModel {
