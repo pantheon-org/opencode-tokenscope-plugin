@@ -120,3 +120,6 @@ export const TokenAnalyzerPlugin: Plugin = async ({ client }) => {
     },
   }
 }
+
+// Default export for convenience
+export default TokenAnalyzerPlugin

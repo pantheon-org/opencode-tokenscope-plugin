@@ -1,0 +1,20 @@
+# Source files (we ship compiled dist/)
+*.ts
+!*.d.ts
+tokenscope-lib/
+
+# Config files
+tsconfig.json
+
+# Scripts
+install.sh
+
+# Git
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.log

@@ -1,5 +1,6 @@
 plugin/vendor/
 plugin/node_modules/
+plugin/dist/
 # NPM lock files (not needed for users)
 plugin/package-lock.json
 plugin/npm-shrinkwrap.json
