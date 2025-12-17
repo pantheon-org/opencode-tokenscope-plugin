@@ -24,19 +24,18 @@ Track and optimize your token usage across system prompts, user messages, tool o
    ```
 
 3. **Create the `/tokenscope` command** by creating `~/.config/opencode/command/tokenscope.md`:
-   ```bash
-   mkdir -p ~/.config/opencode/command
-   cat > ~/.config/opencode/command/tokenscope.md << 'EOF'
-   ---
-   description: Analyze token usage across the current session with detailed breakdowns by category
-   ---
 
-   Call the tokenscope tool directly without delegating to other agents.
-   Then cat the token-usage-output.txt. DONT DO ANYTHING ELSE WITH THE OUTPUT.
-   • Call the two tools
-   • Not add any additional text or formatting after that
-   EOF
-   ```
+```bash
+mkdir -p ~/.config/opencode/command
+cat > ~/.config/opencode/command/tokenscope.md << 'EOF'
+---
+description: Analyze token usage across the current session with detailed breakdowns by category
+---
+
+Call the tokenscope tool directly without delegating to other agents.
+Then cat the token-usage-output.txt. DONT DO ANYTHING ELSE WITH THE OUTPUT.
+EOF
+```
 
 4. **Restart OpenCode** and run `/tokenscope`
 
