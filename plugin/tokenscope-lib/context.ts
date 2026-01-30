@@ -330,26 +330,6 @@ export class ContextAnalyzer {
   }
 
   /**
-   * Check if content looks like a file tree
-   */
-  private looksLikeFileTree(content: string): boolean {
-    const lines = content.split("\n")
-    let indentedLines = 0
-    let filePatternLines = 0
-
-    for (const line of lines) {
-      if (/^\s{2,}[\w\-\.]+/.test(line)) {
-        indentedLines++
-      }
-      if (/\.(ts|js|md|json|py|go|rs|java|c|cpp|h|css|html|tsx|jsx)$/i.test(line)) {
-        filePatternLines++
-      }
-    }
-
-    return indentedLines > 5 && filePatternLines > 3
-  }
-
-  /**
    * Estimate tool schema tokens from tool calls in the session
    */
   private estimateToolSchemas(exported: ExportedSession): ToolSchemaEstimate[] {
